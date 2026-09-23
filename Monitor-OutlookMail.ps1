@@ -31,6 +31,42 @@ function Get-SmtpSenderAddress($MailItem) {
     try { return [string]$MailItem.SenderEmailAddress } catch { return '' }
 }
 
+function Convert-ToSimplifiedChinese([string]$Text) {
+    if ([string]::IsNullOrEmpty($Text)) { return $Text }
+    if (-not ('OutlookKeywordReminder.ChineseText' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Text;
+
+namespace OutlookKeywordReminder {
+    public static class ChineseText {
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern int LCMapStringEx(
+            string localeName, uint mapFlags, string source, int sourceCount,
+            StringBuilder destination, int destinationCount,
+            IntPtr versionInformation, IntPtr reserved, IntPtr sortHandle);
+
+        public static string ToSimplified(string source) {
+            const uint LCMAP_SIMPLIFIED_CHINESE = 0x02000000;
+            int required = LCMapStringEx("zh-CN", LCMAP_SIMPLIFIED_CHINESE,
+                source, source.Length, null, 0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+            if (required == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
+            var result = new StringBuilder(required);
+            int written = LCMapStringEx("zh-CN", LCMAP_SIMPLIFIED_CHINESE,
+                source, source.Length, result, result.Capacity,
+                IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+            if (written == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
+            return result.ToString(0, written);
+        }
+    }
+}
+'@ -ErrorAction Stop
+    }
+    return [OutlookKeywordReminder.ChineseText]::ToSimplified($Text)
+}
+
 function Show-Notification([string]$Title, [string]$Message) {
     try {
         $toastType = [type]::GetType('Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType=WindowsRuntime')
@@ -106,6 +142,10 @@ try {
             $subject = [string]$mail.Subject
             $recipients = "{0} {1}" -f ([string]$mail.To), ([string]$mail.CC)
             $body = if ($config.matchBody) { [string]$mail.Body } else { '' }
+            $senderForMatch = (Convert-ToSimplifiedChinese ($senderName + ' ' + $sender)).ToLowerInvariant()
+            $subjectForMatch = (Convert-ToSimplifiedChinese $subject).ToLowerInvariant()
+            $recipientsForMatch = (Convert-ToSimplifiedChinese $recipients).ToLowerInvariant()
+            $bodyForMatch = (Convert-ToSimplifiedChinese $body).ToLowerInvariant()
 
             $matchReasons = [System.Collections.Generic.List[string]]::new()
             foreach ($address in $addresses) {
@@ -113,11 +153,11 @@ try {
                 elseif ($recipients.ToLowerInvariant().Contains($address)) { [void]$matchReasons.Add("收件人：$address") }
             }
             foreach ($keyword in $keywords) {
-                $needle = $keyword.ToLowerInvariant()
-                if ($config.matchSender -and (($senderName + ' ' + $sender).ToLowerInvariant().Contains($needle))) { [void]$matchReasons.Add("发件人提到：$keyword") }
-                elseif ($config.matchSubject -and $subject.ToLowerInvariant().Contains($needle)) { [void]$matchReasons.Add("主题包含：$keyword") }
-                elseif ($config.matchRecipients -and $recipients.ToLowerInvariant().Contains($needle)) { [void]$matchReasons.Add("收件人包含：$keyword") }
-                elseif ($config.matchBody -and $body.ToLowerInvariant().Contains($needle)) { [void]$matchReasons.Add("正文包含：$keyword") }
+                $needle = (Convert-ToSimplifiedChinese $keyword).ToLowerInvariant()
+                if ($config.matchSender -and $senderForMatch.Contains($needle)) { [void]$matchReasons.Add("发件人提到：$keyword") }
+                elseif ($config.matchSubject -and $subjectForMatch.Contains($needle)) { [void]$matchReasons.Add("主题包含：$keyword") }
+                elseif ($config.matchRecipients -and $recipientsForMatch.Contains($needle)) { [void]$matchReasons.Add("收件人包含：$keyword") }
+                elseif ($config.matchBody -and $bodyForMatch.Contains($needle)) { [void]$matchReasons.Add("正文包含：$keyword") }
             }
 
             [void]$seen.Add($entryId)
