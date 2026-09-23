@@ -1,0 +1,13 @@
+{
+  "intervalMinutes": 15,
+  "initialLookbackMinutes": 60,
+  "overlapMinutes": 2,
+  "maxItemsToInspect": 300,
+  "matchBody": true,
+  "matchSubject": true,
+  "matchSender": true,
+  "matchRecipients": true,
+  "keywords": [],
+  "emailAddresses": [],
+  "folderName": "收件箱"
+}
