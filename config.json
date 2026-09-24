@@ -1,5 +1,5 @@
 {
-  "intervalMinutes": 15,
+  "intervalMinutes": 60,
   "initialLookbackMinutes": 60,
   "overlapMinutes": 2,
   "maxItemsToInspect": 300,

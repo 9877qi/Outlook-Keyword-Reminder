@@ -6,7 +6,7 @@
 
 1. 第一次使用时复制 `config.json` 为 `config.local.json`，之后编辑本机的 `config.local.json`。
 2. 在 `keywords` 中填写要监控的人名、别名或项目关键词；也可以在 `emailAddresses` 中填写精确邮箱地址。`config.local.json` 和运行状态文件不会被 Git 提交。
-3. 根据需要修改 `intervalMinutes`，默认每 15 分钟检查一次。
+3. 根据需要修改 `intervalMinutes`，默认每 60 分钟检查一次。
 4. 先手动测试：
 
    ```powershell
@@ -38,4 +38,4 @@
   pwsh -NoProfile -ExecutionPolicy Bypass -File .\Monitor-OutlookMail.ps1 -ResetState
   ```
 
-- 通知默认只显示发件人、主题和命中原因，不显示完整正文。
+- 命中通知会显示邮件主题、收到时间、发件人和命中原因，不显示完整正文。

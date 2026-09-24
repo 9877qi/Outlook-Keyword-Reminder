@@ -165,7 +165,8 @@ try {
                 $matched++
                 $fromDisplay = if ($senderName) { "$senderName <$sender>" } else { $sender }
                 $reason = ($matchReasons | Select-Object -Unique) -join '；'
-                Show-Notification 'Outlook 邮件命中监控规则' "$fromDisplay`n$subject`n$reason"
+                $receivedText = $received.ToString('yyyy-MM-dd HH:mm:ss')
+                Show-Notification 'Outlook 邮件命中监控规则' "主题：$subject`n收到时间：$receivedText`n发件人：$fromDisplay`n命中：$reason"
                 Write-Output ("命中：{0} | {1} | {2}" -f $fromDisplay, $subject, $reason)
             }
         } catch {
